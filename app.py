@@ -13,11 +13,13 @@ llm = ChatGoogleGenerativeAI(
 )
 
 
+# Request model
 class PuzzleRequest(BaseModel):
     puzzle_type: str
     difficulty: str
 
 
+# Home page
 @app.get("/")
 def home():
     return {
@@ -25,25 +27,26 @@ def home():
     }
 
 
+# Generate puzzle
 @app.post("/generate-puzzle")
 def generate_puzzle(request: PuzzleRequest):
 
     prompt = f"""
-    You are a Puzzle Master AI.
+You are a Puzzle Master AI.
 
-    Generate ONE {request.difficulty} difficulty
-    {request.puzzle_type} puzzle.
+Generate ONE {request.difficulty} difficulty
+{request.puzzle_type} puzzle.
 
-    Give:
-    1. The puzzle question
-    2. The correct answer
-    3. A short explanation
+Give:
+1. The puzzle question
+2. The correct answer
+3. A short explanation
 
-    Do not generate multiple puzzles.
-    """
+Do not generate multiple puzzles.
+"""
 
     response = llm.invoke(prompt)
 
     return {
-        "puzzle": response.content
+        "puzzle": str(response.content)
     }

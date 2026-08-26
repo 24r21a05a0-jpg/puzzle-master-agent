@@ -1,53 +1,39 @@
-```python
 import os
+import json
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-app = FastAPI(title="Puzzle Master Agent")
+app = FastAPI(title="Riddle Puzzle Agent")
 
 # Gemini AI
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
     google_api_key=os.getenv("GEMINI_API_KEY"),
-    temperature=0.7
+    temperature=0.8
 )
 
 
-# Request model
 class PuzzleRequest(BaseModel):
-    puzzle_type: str
-    difficulty: str
+    difficulty: str = "easy"
 
 
-# Home page
 @app.get("/", response_class=HTMLResponse)
-def home():
+async def home():
     return """
     <!DOCTYPE html>
     <html>
     <head>
         <title>🧩 Riddle Master</title>
-
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <style>
-            * {
-                box-sizing: border-box;
-            }
-
             body {
                 margin: 0;
                 min-height: 100vh;
                 font-family: Arial, sans-serif;
-                background: linear-gradient(
-                    135deg,
-                    #667eea,
-                    #764ba2
-                );
-
+                background: linear-gradient(135deg, #667eea, #764ba2);
                 display: flex;
                 justify-content: center;
                 align-items: center;
@@ -55,63 +41,56 @@ def home():
 
             .container {
                 width: 90%;
-                max-width: 650px;
+                max-width: 600px;
                 background: white;
-                padding: 40px;
-                border-radius: 25px;
+                padding: 30px;
+                border-radius: 20px;
                 text-align: center;
-                box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+                box-shadow: 0 10px 30px rgba(0,0,0,0.25);
             }
 
             h1 {
-                font-size: 38px;
-                color: #333;
-                margin-bottom: 10px;
+                color: #5a3ea6;
             }
 
-            .subtitle {
-                color: #666;
-                font-size: 18px;
-                margin-bottom: 30px;
+            #riddle {
+                font-size: 22px;
+                margin: 25px 0;
+                line-height: 1.5;
             }
 
-            select {
-                padding: 12px 20px;
-                border-radius: 10px;
+            input {
+                width: 80%;
+                padding: 12px;
                 border: 2px solid #ddd;
+                border-radius: 10px;
+                font-size: 16px;
+            }
+
+            button {
+                margin: 10px;
+                padding: 12px 22px;
+                border: none;
+                border-radius: 10px;
+                background: #667eea;
+                color: white;
                 font-size: 16px;
                 cursor: pointer;
             }
 
-            button {
-                padding: 14px 25px;
-                margin: 20px 0;
-                border: none;
-                border-radius: 12px;
-                background: #667eea;
-                color: white;
-                font-size: 17px;
-                font-weight: bold;
-                cursor: pointer;
-            }
-
             button:hover {
-                opacity: 0.85;
+                background: #4f63c4;
             }
 
-            .riddle-box {
+            #result {
                 margin-top: 20px;
-                padding: 25px;
-                background: #f5f5f5;
-                border-radius: 15px;
-                min-height: 100px;
-                text-align: left;
-                line-height: 1.6;
-                white-space: pre-wrap;
+                font-weight: bold;
+                font-size: 18px;
             }
 
-            #status {
-                color: #666;
+            .score {
+                color: #5a3ea6;
+                font-size: 18px;
             }
         </style>
     </head>
@@ -122,98 +101,105 @@ def home():
 
             <h1>🧩 Riddle Master</h1>
 
-            <p class="subtitle">
-                Challenge your brain with an AI-generated riddle!
-            </p>
+            <p class="score">Score: <span id="score">0</span></p>
 
-            <p>
-                <b>Choose Difficulty</b>
-            </p>
+            <h2>🤔 Solve the Riddle</h2>
 
-            <select id="difficulty">
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-            </select>
+            <p id="riddle">Loading riddle...</p>
+
+            <input
+                type="text"
+                id="answer"
+                placeholder="Type your answer..."
+            >
 
             <br>
 
-            <button onclick="generateRiddle()">
-                🎲 Generate Riddle
-            </button>
+            <button onclick="checkAnswer()">✅ Check Answer</button>
 
-            <div id="riddle" class="riddle-box">
-                🤔 Your riddle will appear here...
-            </div>
+            <button onclick="newRiddle()">🔄 New Riddle</button>
 
-            <p id="status"></p>
+            <p id="result"></p>
 
         </div>
 
-
         <script>
 
-            async function generateRiddle() {
+            let currentAnswer = "";
+            let score = 0;
 
-                const difficulty =
-                    document.getElementById("difficulty").value;
+            async function newRiddle() {
 
-                const riddleBox =
-                    document.getElementById("riddle");
+                document.getElementById("riddle").innerText =
+                    "⏳ Creating a new riddle...";
 
-                const status =
-                    document.getElementById("status");
+                document.getElementById("result").innerText = "";
 
-                riddleBox.innerText =
-                    "🤖 Creating your riddle...";
-
-                status.innerText = "";
+                document.getElementById("answer").value = "";
 
                 try {
 
-                    const response = await fetch(
-                        "/generate-puzzle",
-                        {
-                            method: "POST",
-
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-
-                            body: JSON.stringify({
-                                puzzle_type: "riddle",
-                                difficulty: difficulty
-                            })
-                        }
-                    );
+                    const response = await fetch("/generate-puzzle", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            difficulty: "easy"
+                        })
+                    });
 
                     const data = await response.json();
 
-                    if (response.ok) {
+                    document.getElementById("riddle").innerText =
+                        data.riddle;
 
-                        riddleBox.innerText =
-                            data.puzzle;
-
-                        status.innerText =
-                            "🎉 Good luck!";
-
-                    } else {
-
-                        riddleBox.innerText =
-                            "❌ Something went wrong.";
-
-                    }
+                    currentAnswer = data.answer.toLowerCase().trim();
 
                 } catch (error) {
 
-                    riddleBox.innerText =
-                        "❌ Could not connect to the server.";
-
-                    status.innerText =
-                        "Please try again.";
+                    document.getElementById("riddle").innerText =
+                        "❌ Could not generate riddle.";
 
                 }
             }
+
+
+            function checkAnswer() {
+
+                const userAnswer =
+                    document.getElementById("answer").value
+                    .toLowerCase()
+                    .trim();
+
+                const result =
+                    document.getElementById("result");
+
+                if (!userAnswer) {
+                    result.innerText = "Please enter an answer 😊";
+                    return;
+                }
+
+                if (userAnswer === currentAnswer) {
+
+                    score += 10;
+
+                    document.getElementById("score").innerText =
+                        score;
+
+                    result.innerText =
+                        "🎉 Correct! Great job!";
+
+                } else {
+
+                    result.innerText =
+                        "❌ Not quite! Try again.";
+
+                }
+            }
+
+
+            newRiddle();
 
         </script>
 
@@ -222,28 +208,45 @@ def home():
     """
 
 
-# Generate puzzle
 @app.post("/generate-puzzle")
-def generate_puzzle(request: PuzzleRequest):
+async def generate_puzzle(request: PuzzleRequest):
 
     prompt = f"""
-You are a Puzzle Master AI.
+    Create one fun and interesting riddle puzzle.
 
-Generate ONE {request.difficulty} difficulty
-{request.puzzle_type} puzzle.
+    Difficulty: {request.difficulty}
 
-Give:
+    Return ONLY valid JSON in this exact format:
 
-1. The puzzle question
-2. The correct answer
-3. A short explanation
+    {{
+        "riddle": "the riddle question",
+        "answer": "the correct answer"
+    }}
 
-Do not generate multiple puzzles.
-"""
+    Do not add markdown.
+    Do not add explanations.
+    """
 
-    response = llm.invoke(prompt)
+    response = await llm.ainvoke(prompt)
 
-    return {
-        "puzzle": str(response.content)
-    }
-```
+    text = response.content.strip()
+
+    # Remove markdown if Gemini adds it
+    if text.startswith("```"):
+        text = text.replace("```json", "")
+        text = text.replace("```", "")
+        text = text.strip()
+
+    try:
+        puzzle = json.loads(text)
+
+        return {
+            "riddle": puzzle["riddle"],
+            "answer": puzzle["answer"]
+        }
+
+    except Exception:
+        return {
+            "riddle": "I have keys but no locks. I have space but no room. What am I?",
+            "answer": "keyboard"
+        }

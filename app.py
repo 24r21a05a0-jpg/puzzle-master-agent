@@ -1,5 +1,7 @@
+```python
 import os
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -20,21 +22,32 @@ class PuzzleRequest(BaseModel):
 
 
 # Home page
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def home():
     return """
     <!DOCTYPE html>
     <html>
     <head>
         <title>🧩 Riddle Master</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1.0">
 
         <style>
+            * {
+                box-sizing: border-box;
+            }
+
             body {
                 margin: 0;
                 min-height: 100vh;
                 font-family: Arial, sans-serif;
-                background: linear-gradient(135deg, #667eea, #764ba2);
+                background: linear-gradient(
+                    135deg,
+                    #667eea,
+                    #764ba2
+                );
+
                 display: flex;
                 justify-content: center;
                 align-items: center;
@@ -53,11 +66,13 @@ def home():
             h1 {
                 font-size: 38px;
                 color: #333;
+                margin-bottom: 10px;
             }
 
             .subtitle {
                 color: #666;
                 font-size: 18px;
+                margin-bottom: 30px;
             }
 
             select {
@@ -65,6 +80,7 @@ def home():
                 border-radius: 10px;
                 border: 2px solid #ddd;
                 font-size: 16px;
+                cursor: pointer;
             }
 
             button {
@@ -110,7 +126,9 @@ def home():
                 Challenge your brain with an AI-generated riddle!
             </p>
 
-            <p><b>Choose Difficulty</b></p>
+            <p>
+                <b>Choose Difficulty</b>
+            </p>
 
             <select id="difficulty">
                 <option value="easy">Easy</option>
@@ -228,3 +246,4 @@ Do not generate multiple puzzles.
     return {
         "puzzle": str(response.content)
     }
+```

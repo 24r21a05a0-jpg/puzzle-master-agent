@@ -1,4 +1,3 @@
-```python
 import os
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -8,7 +7,7 @@ app = FastAPI(title="Puzzle Master Agent")
 
 # Gemini AI
 llm = ChatGoogleGenerativeAI(
-    model="gemini-3.6-flash",
+    model="gemini-2.5-flash",
     google_api_key=os.getenv("GEMINI_API_KEY"),
     temperature=0.7
 )
@@ -28,26 +27,14 @@ def home():
     <html>
     <head>
         <title>🧩 Riddle Master</title>
-
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
         <style>
-
-            * {
-                box-sizing: border-box;
-            }
-
             body {
                 margin: 0;
                 min-height: 100vh;
                 font-family: Arial, sans-serif;
-                background: linear-gradient(
-                    135deg,
-                    #667eea,
-                    #764ba2
-                );
-
+                background: linear-gradient(135deg, #667eea, #764ba2);
                 display: flex;
                 justify-content: center;
                 align-items: center;
@@ -65,18 +52,12 @@ def home():
 
             h1 {
                 font-size: 38px;
-                margin-bottom: 10px;
                 color: #333;
             }
 
             .subtitle {
                 color: #666;
                 font-size: 18px;
-                margin-bottom: 30px;
-            }
-
-            .difficulty {
-                margin-bottom: 20px;
             }
 
             select {
@@ -84,12 +65,11 @@ def home():
                 border-radius: 10px;
                 border: 2px solid #ddd;
                 font-size: 16px;
-                cursor: pointer;
             }
 
             button {
                 padding: 14px 25px;
-                margin: 10px;
+                margin: 20px 0;
                 border: none;
                 border-radius: 12px;
                 background: #667eea;
@@ -100,26 +80,23 @@ def home():
             }
 
             button:hover {
-                transform: scale(1.03);
-                opacity: 0.9;
+                opacity: 0.85;
             }
 
             .riddle-box {
-                margin-top: 25px;
+                margin-top: 20px;
                 padding: 25px;
                 background: #f5f5f5;
                 border-radius: 15px;
-                min-height: 120px;
+                min-height: 100px;
                 text-align: left;
                 line-height: 1.6;
                 white-space: pre-wrap;
             }
 
             #status {
-                margin-top: 15px;
                 color: #666;
             }
-
         </style>
     </head>
 
@@ -133,31 +110,15 @@ def home():
                 Challenge your brain with an AI-generated riddle!
             </p>
 
-            <div class="difficulty">
+            <p><b>Choose Difficulty</b></p>
 
-                <label>
-                    <b>Choose Difficulty:</b>
-                </label>
+            <select id="difficulty">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+            </select>
 
-                <br><br>
-
-                <select id="difficulty">
-
-                    <option value="easy">
-                        Easy
-                    </option>
-
-                    <option value="medium">
-                        Medium
-                    </option>
-
-                    <option value="hard">
-                        Hard
-                    </option>
-
-                </select>
-
-            </div>
+            <br>
 
             <button onclick="generateRiddle()">
                 🎲 Generate Riddle
@@ -192,9 +153,9 @@ def home():
 
                 try {
 
-                    const response =
-                        await fetch("/generate-puzzle", {
-
+                    const response = await fetch(
+                        "/generate-puzzle",
+                        {
                             method: "POST",
 
                             headers: {
@@ -202,19 +163,13 @@ def home():
                             },
 
                             body: JSON.stringify({
-
                                 puzzle_type: "riddle",
-
                                 difficulty: difficulty
-
                             })
+                        }
+                    );
 
-                        });
-
-
-                    const data =
-                        await response.json();
-
+                    const data = await response.json();
 
                     if (response.ok) {
 
@@ -224,18 +179,14 @@ def home():
                         status.innerText =
                             "🎉 Good luck!";
 
-                    }
-
-                    else {
+                    } else {
 
                         riddleBox.innerText =
                             "❌ Something went wrong.";
 
                     }
 
-                }
-
-                catch (error) {
+                } catch (error) {
 
                     riddleBox.innerText =
                         "❌ Could not connect to the server.";
@@ -244,13 +195,11 @@ def home():
                         "Please try again.";
 
                 }
-
             }
 
         </script>
 
     </body>
-
     </html>
     """
 
@@ -279,4 +228,3 @@ Do not generate multiple puzzles.
     return {
         "puzzle": str(response.content)
     }
-```

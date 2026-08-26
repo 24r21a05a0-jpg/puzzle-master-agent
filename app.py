@@ -1,4 +1,3 @@
-````python
 import os
 import json
 import random
@@ -849,4 +848,4 @@ Do not add explanations.
                 puzzle["hint"]
 
         }
-````
+

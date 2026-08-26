@@ -340,9 +340,86 @@ newRiddle();
 # Generate Riddle
 # -------------------------
 @app.post("/generate-puzzle")
-async def generate_puzzle(
-    request: PuzzleRequest
-):
+async def generate_puzzle(request: PuzzleRequest):
+
+    try:
+
+        prompt = f"""
+Create ONE unique, fun and interesting riddle.
+
+Difficulty: {request.difficulty}
+
+IMPORTANT:
+- Do NOT use the keyboard riddle.
+- Create a different riddle every time.
+- The answer must be simple.
+- Make the riddle suitable for a fun puzzle game.
+
+Return ONLY valid JSON:
+
+{{
+    "riddle": "your riddle here",
+    "answer": "correct answer"
+}}
+
+Do not use markdown.
+Do not add explanations.
+"""
+
+        response = await llm.ainvoke(prompt)
+
+        text = response.content
+
+        if isinstance(text, list):
+            text = "".join(str(item) for item in text)
+
+        text = text.strip()
+
+        if text.startswith("```"):
+            text = text.replace("```json", "")
+            text = text.replace("```", "")
+            text = text.strip()
+
+        puzzle = json.loads(text)
+
+        return {
+            "riddle": puzzle["riddle"],
+            "answer": puzzle["answer"]
+        }
+
+    except Exception as e:
+
+        print("GEMINI ERROR:", str(e))
+
+        # Different fallback riddles
+        fallback_riddles = [
+            {
+                "riddle": "What has hands but cannot clap?",
+                "answer": "clock"
+            },
+            {
+                "riddle": "What gets wetter the more it dries?",
+                "answer": "towel"
+            },
+            {
+                "riddle": "What has one eye but cannot see?",
+                "answer": "needle"
+            },
+            {
+                "riddle": "What has many teeth but cannot bite?",
+                "answer": "comb"
+            },
+            {
+                "riddle": "What can travel around the world while staying in one corner?",
+                "answer": "stamp"
+            }
+        ]
+
+        import random
+
+        puzzle = random.choice(fallback_riddles)
+
+        return puzzle
 
     try:
 
